@@ -1,0 +1,108 @@
+---
+title: "Problem Set 4"
+author: "Pete Cuppernull"
+date: "2/27/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+K-Means by hand
+```{r}
+set.seed(1414)
+x <- cbind(c(1, 1, 0, 5, 6, 4), c(4, 3, 4, 1, 2, 0))
+
+
+#Plot the observations.
+plot(x)
+
+# Randomly assign a cluster label to each observation. Report the cluster labels for each observation and plot the results with a different color for each cluster (remember to set your seed first).
+colnames(x) <- c("x", "y")
+label <- as.factor(sample(1:2, 6, replace=TRUE))
+x <- cbind(x, label)
+
+#compute the centroid for each cluster.
+x_df <- as.data.frame(x)
+
+centroids <- x_df %>%
+  group_by(label) %>%
+  mutate(mean(x), mean(y)) %>%
+  select(`mean(x)`, `mean(y)`) %>%
+  distinct()
+
+
+#Assign each observation to the centroid to which it is closest, in terms of Euclidean distance. Report the cluster labels for each observation.
+x1 <- centroids[1,2]
+x2 <- centroids[2,2]
+y1 <- centroids[1,3]
+y2 <- centroids[2,3]
+xs <- cbind(x1, x2) 
+ys <- cbind(y1, y2) 
+points <- cbind(xs, ys)
+colnames(points) <- c("x1", "x2", "y1", "y2")
+
+df_cluster <- as.data.frame(cbind(x, points))
+
+
+df_cluster %>%
+  mutate(new_label = if_else(  ((abs(x-x1) + abs(y-y1)) / 2) < ((abs(x-x2) + abs(y-y2)) / 2), 1, 2)) %>%
+  select(x, y, new_label)
+
+#Repeat (3) and (4) until the answers/clusters stop changing.
+iterate <- function(original_df){
+  x_df <- as.data.frame(original_df)
+
+centroids <- x_df %>%
+  group_by(label) %>%
+  mutate(mean(x), mean(y)) %>%
+  select(`mean(x)`, `mean(y)`) %>%
+  distinct()
+  
+x1 <- centroids[1,2]
+x2 <- centroids[2,2]
+y1 <- centroids[1,3]
+y2 <- centroids[2,3]
+xs <- cbind(x1, x2) 
+ys <- cbind(y1, y2) 
+points <- cbind(xs, ys)
+colnames(points) <- c("x1", "x2", "y1", "y2")
+
+df_cluster <- as.data.frame(cbind(x, points))
+  
+new_df <- df_cluster %>%
+  mutate(label = if_else(  ((abs(x-x1) + abs(y-y1)) / 2) < ((abs(x-x2) + abs(y-y2)) / 2), 1, 2)) %>%
+  select(x, y, label)
+
+new_df
+}
+
+#Now, manually iterate until convergence
+##Stage 1
+x2 <- iterate(x)
+x == x2 #Not converged
+x3 <- iterate(x2)
+
+x2 == x3 ##converged!!
+
+x4 <- iterate(x3)
+
+x3 == x4
+
+#Reproduce the original plot from (1), but this time color the observations according to the clusters labels you obtained by iterating the cluster centroid calculation and assignments.
+final_centroids <- as.data.frame(x4) %>%
+  group_by(label) %>%
+  mutate(mean(x), mean(y)) %>%
+  select(`mean(x)`, `mean(y)`) %>%
+  distinct()
+
+ggplot() +
+  geom_point(data = as.data.frame(x4), mapping = aes(x, y, color = as.factor(label))) +
+  geom_point(data = final_centroids, mapping = aes(`mean(x)`, `mean(y)`, color = as.factor(label)), size = 5, alpha = .4)
+  
+  
+
+```
+
