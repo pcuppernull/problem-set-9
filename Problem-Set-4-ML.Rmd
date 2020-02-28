@@ -14,6 +14,7 @@ library(dendextend)
 library(mixtools)
 library(plotGMM)
 library(scales)
+library(clValid)
 ```
 
 K-Means by hand
@@ -363,4 +364,97 @@ gmm_results %>%
 
 ```
 
+Validation
+```{r}
+#AHC
+hier_valid <- clValid(as.matrix(predictors), 
+        nClust = 2:8, 
+        clMethods = "hierarchical", 
+        validation = "internal", 
+        method = "complete")
 
+hier_measures <- measures(hier_valid)
+
+hier_df <- as.data.frame(hier_measures)
+colnames(hier_df) <- c("2", "3", "4", "5", "6", "7","8")
+
+hier_final_df <- hier_df %>%
+  rownames_to_column() %>%
+  gather(key = "clusters",
+         value = "score",
+         2:8) %>%
+  mutate(model = "hierarchical")
+
+#K-means
+kmeans_valid <- clValid(as.matrix(predictors), 
+        nClust = 2:8, 
+        clMethods = "kmeans", 
+        validation = "internal", 
+        method = "complete")
+
+kmeans_measures <- measures(kmeans_valid)
+
+km_df <- as.data.frame(kmeans_measures)
+colnames(km_df) <- c("2", "3", "4", "5", "6", "7","8")
+
+km_final_df <- km_df %>%
+  rownames_to_column() %>%
+  gather(key = "clusters",
+         value = "score",
+         2:8) %>%
+  mutate(model = "kmeans")
+
+#GMM
+gmm_valid <- clValid(as.matrix(predictors), 
+        nClust = 2:8, 
+        clMethods = "model", 
+        validation = "internal", 
+        method = "complete")
+
+gmm_measures <- measures(gmm_valid)
+
+gmm_df <- as.data.frame(gmm_measures)
+colnames(gmm_df) <- c("2", "3", "4", "5", "6", "7","8")
+
+gmm_final_df <- gmm_df %>%
+  rownames_to_column() %>%
+  gather(key = "clusters",
+         value = "score",
+         2:8) %>%
+  mutate(model = "GMM")
+
+final_validations <- rbind(hier_final_df, km_final_df, gmm_final_df) %>%
+  mutate(clusters = as.numeric(clusters))
+
+##Compare Results
+##Connectivity
+#final_validations %>%
+#  filter(rowname == "Connectivity") %>%
+#ggplot(aes(clusters, score, color = model)) +
+#  geom_line() +
+#  labs(title = "Connectivity Scores of Each Model",
+#       x = "Number of Clusters",
+#       y = "Connectivity Score")
+
+##Dunn
+#final_validations %>%
+#  filter(rowname == "Dunn") %>%
+#ggplot(aes(clusters, score, color = model)) +
+#  geom_line() +
+#  labs(title = "Dunn Score of Each Model",
+#       x = "Number of Clusters",
+#       y = "Dunn Score")
+
+##Sil
+final_validations %>%
+  filter(rowname == "Silhouette") %>%
+ggplot(aes(clusters, score, color = model)) +
+  geom_line() +
+  labs(title = "Silhouette Width of Each Model",
+       x = "Number of Clusters",
+       y = "Silhouette Width")
+```
+
+INTERPRET
+
+discussion
